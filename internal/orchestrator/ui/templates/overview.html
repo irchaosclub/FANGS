@@ -1,0 +1,117 @@
+{{define "content"}}
+<header class="page-header">
+  <h1>Overview</h1>
+  <div class="muted">
+    <span data-refresh-marker>{{formatTS .Now}}</span>
+    <span class="small">· auto-refresh 5s</span>
+  </div>
+</header>
+
+<div id="overview-live"
+     data-refresh-url="/ui/"
+     data-refresh-extract="#overview-live"
+     data-refresh-interval="5000">
+<section class="grid grid-3">
+  <div class="card">
+    <div class="card-label">Packages watched</div>
+    <div class="card-value">{{.Stats.WatchedCount}}</div>
+    <div class="card-sub muted">{{.Stats.PackagesTotal}} ever tracked</div>
+  </div>
+  <div class="card">
+    <div class="card-label">Runs total</div>
+    <div class="card-value">{{.Stats.RunsTotal}}</div>
+    <div class="card-sub muted">{{.Stats.RunsBaseline}} on baseline</div>
+  </div>
+  <div class="card">
+    <div class="card-label">Open deviations</div>
+    <div class="card-value{{if gt .Stats.DeviationsTotal 0}} alert{{end}}">{{.Stats.DeviationsTotal}}</div>
+    <div class="card-sub muted">across {{.Stats.DeviationsPackages}} packages</div>
+  </div>
+  <div class="card">
+    <div class="card-label">Events dropped</div>
+    <div class="card-value{{if gt .Stats.EventsDropped 0}} alert{{end}}">{{.Stats.EventsDropped}}</div>
+    <div class="card-sub muted">lifetime sensor ringbuf overflow</div>
+  </div>
+</section>
+
+<section>
+  <h2>Runner pool</h2>
+  {{if .Runners}}
+  <table>
+    <thead><tr><th>Runner</th><th>Status</th><th>Active run</th><th>Hostname</th><th>Kernel</th><th>Registered</th><th>Last seen</th></tr></thead>
+    <tbody>
+    {{range .Runners}}
+      <tr>
+        <td><code>{{.ID}}</code></td>
+        <td>
+          {{if .IsStale}}<span class="badge sev-high">stale</span>
+          {{else if eq .Status "running"}}<span class="badge baseline">running</span>
+          {{else if eq .Status "idle"}}<span class="badge sev-info">idle</span>
+          {{else}}<span class="muted">—</span>{{end}}
+        </td>
+        <td>
+          {{if .ActiveRunID}}<code><a href="/ui/runs/{{.ActiveRunID}}">{{shortID .ActiveRunID}}</a></code>
+          {{else}}<span class="muted">—</span>{{end}}
+        </td>
+        <td>{{.Hostname}}</td>
+        <td class="muted">{{.KernelVersion}}</td>
+        <td title="{{formatTS .RegisteredAt}}">{{relTime .RegisteredAt}}</td>
+        <td title="{{formatTS .LastSeen}}">{{relTime .LastSeen}}</td>
+      </tr>
+    {{end}}
+    </tbody>
+  </table>
+  {{else}}
+  <p class="muted">No runners registered. Start a runner: <code>sudo fangs-runner</code></p>
+  {{end}}
+</section>
+
+<section>
+  <h2>Recent runs</h2>
+  {{if .RecentRuns}}
+  <table>
+    <thead><tr><th>Run</th><th>Package</th><th>Version</th><th>State</th><th>Started</th><th></th></tr></thead>
+    <tbody>
+    {{range .RecentRuns}}
+      <tr>
+        <td><code><a href="/ui/runs/{{.ID}}">{{shortID .ID}}</a></code></td>
+        <td>{{.PackageName}}</td>
+        <td class="muted">{{.Version}}</td>
+        <td>
+          <span class="state state-{{.State}}">{{.State}}</span>
+          {{if .IsBaseline}}<span class="badge baseline">baseline</span>{{end}}
+        </td>
+        <td title="{{formatTS (derefTime .StartedAt)}}">{{relTime (derefTime .StartedAt)}}</td>
+        <td><a class="muted" href="/ui/runs/{{.ID}}">view →</a></td>
+      </tr>
+    {{end}}
+    </tbody>
+  </table>
+  {{else}}
+  <p class="muted">No runs yet.</p>
+  {{end}}
+</section>
+
+<section>
+  <h2>Recent deviations</h2>
+  {{if .RecentDeviations}}
+  <table>
+    <thead><tr><th>Deviation</th><th>Severity</th><th>Category</th><th>Value</th><th>Run</th><th>Detected</th></tr></thead>
+    <tbody>
+    {{range .RecentDeviations}}
+      <tr>
+        <td><code><a href="/ui/deviations/{{.ID}}">{{shortID .ID}}</a></code></td>
+        <td><span class="badge {{severity .Severity}}">{{.Severity}}</span></td>
+        <td class="muted">{{.Category}}</td>
+        <td><code>{{truncate .Value 64}}</code></td>
+        <td><code><a href="/ui/runs/{{.RunID}}">{{shortID .RunID}}</a></code></td>
+        <td title="{{formatTS .DetectedAt}}">{{relTime .DetectedAt}}</td>
+      </tr>
+    {{end}}
+  </table>
+  {{else}}
+  <p class="muted">No deviations recorded. (No news is good news.)</p>
+  {{end}}
+</section>
+</div><!-- /#overview-live -->
+{{end}}

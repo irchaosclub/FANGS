@@ -1,0 +1,44 @@
+{{define "content"}}
+<header class="page-header">
+  <h1>Deviation <code>{{shortID .Deviation.ID}}</code></h1>
+  <a class="muted" href="/ui/deviations">← all deviations</a>
+</header>
+
+<section class="grid grid-2">
+  <div class="card">
+    <div class="card-label">Category</div>
+    <div class="card-value mono">{{.Deviation.Category}}</div>
+    <div class="card-sub">
+      <span class="badge {{severity .Deviation.Severity}}">{{.Deviation.Severity}}</span>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-label">Run</div>
+    <div class="card-value mono"><a href="/ui/runs/{{.Run.ID}}">{{shortID .Run.ID}}</a></div>
+    <div class="card-sub muted">{{.Run.PackageName}} · {{.Run.Version}}</div>
+  </div>
+</section>
+
+<section>
+  <h2>Value</h2>
+  <pre class="code"><code>{{.Deviation.Value}}</code></pre>
+</section>
+
+<section>
+  <h2>
+    Evidence event
+    {{if .Evidence.ID}}<span class="muted">#{{.Evidence.ID}} · {{.Evidence.Type}}</span>{{end}}
+    {{if .Evidence.ID}}<a class="muted" style="float:right; font-size:13px" href="/ui/runs/{{.Run.ID}}/lineage?event={{.Evidence.ID}}">→ lineage</a>{{end}}
+  </h2>
+  {{if .EvidenceJSON}}
+  <pre class="code"><code>{{.EvidenceJSON}}</code></pre>
+  {{else}}
+  <p class="muted">No evidence event recorded.</p>
+  {{end}}
+</section>
+
+<section class="actions-note">
+  <p class="muted">To promote this run into baseline (accept the deviation as legitimate):</p>
+  <pre class="code"><code>fangs baseline promote {{shortID .Run.ID}}</code></pre>
+</section>
+{{end}}

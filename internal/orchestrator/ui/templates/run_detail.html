@@ -1,0 +1,105 @@
+{{define "content"}}
+<header class="page-header">
+  <h1>Run <code>{{shortID .Run.ID}}</code></h1>
+  <div>
+    <a href="/ui/runs/{{.Run.ID}}/lineage">→ view lineage</a>
+    &nbsp;·&nbsp;
+    <a class="muted" href="/ui/runs">← all runs</a>
+  </div>
+</header>
+
+<section class="grid grid-3">
+  <div class="card">
+    <div class="card-label">Package</div>
+    <div class="card-value mono"><a href="/ui/packages/{{.Run.PackageName}}">{{.Run.PackageName}}</a></div>
+    <div class="card-sub muted">{{.Run.Version}}</div>
+  </div>
+  <div class="card">
+    <div class="card-label">State</div>
+    <div class="card-value">
+      <span class="state state-{{.Run.State}}">{{.Run.State}}</span>
+      {{if .Run.IsBaseline}}<span class="badge baseline">baseline</span>{{end}}
+    </div>
+    <div class="card-sub muted">
+      {{.Run.EventsEmitted}} emitted{{if gt .Run.EventsDropped 0}} · <span class="alert">{{.Run.EventsDropped}} dropped</span>{{end}}
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-label">Timing</div>
+    <div class="card-value mono">{{formatTS (derefTime .Run.StartedAt)}}</div>
+    <div class="card-sub muted">
+      {{if gt .Run.DurationNS 0}}duration {{nsToDuration .Run.DurationNS}} · {{end}}finished {{relTime (derefTime .Run.FinishedAt)}}
+    </div>
+  </div>
+</section>
+
+{{if .Run.FailureReason}}
+<section>
+  <div class="actions-note" style="border-left-color: var(--danger); background: rgba(227,99,93,0.05);">
+    <strong>Run failed:</strong> <code>{{.Run.FailureReason}}</code>
+  </div>
+</section>
+{{end}}
+
+<div id="run-events" data-dynamic-nav="#run-events">
+<section>
+  <h2>Event types</h2>
+  {{if .Summary}}
+  <div class="chips">
+    <a href="?" class="chip{{if not .TypeFilter}} chip-active{{end}}">All · {{.TotalEvents}}</a>
+    {{range .Summary}}
+      <a href="?type={{.Type}}" class="chip {{chipColor .Type}}{{if eq $.TypeFilter .Type}} chip-active{{end}}">
+        {{.Type}} · {{.Count}}
+      </a>
+    {{end}}
+  </div>
+  {{else}}<p class="muted">No events recorded.</p>{{end}}
+</section>
+
+<section>
+  <h2>Deviations ({{len .Deviations}})</h2>
+  {{if .Deviations}}
+  <table>
+    <thead><tr><th>ID</th><th>Severity</th><th>Category</th><th>Value</th><th>Evidence</th></tr></thead>
+    <tbody>
+    {{range .Deviations}}
+      <tr>
+        <td><code><a href="/ui/deviations/{{.ID}}">{{shortID .ID}}</a></code></td>
+        <td><span class="badge {{severity .Severity}}">{{.Severity}}</span></td>
+        <td class="muted">{{.Category}}</td>
+        <td><code>{{truncate .Value 80}}</code></td>
+        <td><a class="muted" href="/ui/events/{{.EvidenceEventID}}">event #{{.EvidenceEventID}}</a></td>
+      </tr>
+    {{end}}
+    </tbody>
+  </table>
+  {{else}}<p class="muted">No deviations on this run — clean against baseline.</p>{{end}}
+</section>
+
+<section>
+  <h2>
+    Events
+    <span class="muted">
+      {{if .TypeFilter}}filtered to {{.TypeFilter}} · {{.EventCount}} of {{.TotalEvents}}
+      {{else}}(latest {{.TotalEvents}}){{end}}
+    </span>
+  </h2>
+  {{if .Events}}
+  <table class="dense">
+    <thead><tr><th>#</th><th>Type</th><th>Comm</th><th>Summary</th><th></th></tr></thead>
+    <tbody>
+    {{range .Events}}
+      <tr{{if gt .Tags 0}} class="row-tagged"{{end}}>
+        <td class="muted">{{.ID}}</td>
+        <td>{{.Type}}</td>
+        <td class="muted">{{.Comm}}</td>
+        <td><code>{{truncate .Summary 100}}</code></td>
+        <td><a class="muted" href="/ui/events/{{.ID}}">json</a></td>
+      </tr>
+    {{end}}
+    </tbody>
+  </table>
+  {{else}}<p class="muted">No events recorded.</p>{{end}}
+</section>
+</div><!-- /#run-events -->
+{{end}}

@@ -1,0 +1,64 @@
+{{define "content"}}
+<header class="page-header">
+  <h1>Notifiers</h1>
+  <div class="muted">{{len .Notifiers}} target{{if ne (len .Notifiers) 1}}s{{end}}</div>
+</header>
+
+<section class="actions-note">
+  <p class="muted">Webhook targets are <strong>read-only here</strong>. Manage via the CLI:</p>
+  <pre class="code"><code>fangs notifier add -name soc-slack -url https://hooks.slack.com/... -template slack
+fangs notifier add -name siem -url https://intake.example/fangs -template generic -secret-env SIEM_HMAC
+fangs notifier test &lt;name&gt;
+fangs notifier history -run &lt;run_id&gt;
+fangs notifier remove &lt;name&gt;</code></pre>
+</section>
+
+<section>
+  <h2>Configured targets</h2>
+  {{if .Notifiers}}
+  <table>
+    <thead>
+      <tr>
+        <th>Name</th><th>Template</th><th>URL</th><th>Enabled</th><th>Min severity</th><th>HMAC</th><th>Updated</th>
+      </tr>
+    </thead>
+    <tbody>
+    {{range .Notifiers}}
+      <tr>
+        <td><code>{{.Name}}</code></td>
+        <td><span class="badge sev-info">{{.Template}}</span></td>
+        <td><code class="muted">{{truncate .URL 60}}</code></td>
+        <td>
+          {{if .Enabled}}<span class="badge baseline">yes</span>
+          {{else}}<span class="badge sev-high">no</span>{{end}}
+        </td>
+        <td>
+          {{if .MinSeverity}}<span class="badge {{severity .MinSeverity}}">{{.MinSeverity}}</span>
+          {{else}}<span class="muted">any</span>{{end}}
+        </td>
+        <td>
+          {{if .SecretEnv}}<code>${{.SecretEnv}}</code>
+          {{else}}<span class="muted">no</span>{{end}}
+        </td>
+        <td title="{{formatTS .UpdatedAt}}">{{relTime .UpdatedAt}}</td>
+      </tr>
+    {{end}}
+    </tbody>
+  </table>
+  {{else}}
+  <p class="muted">No webhook targets configured. Add one with the CLI to start receiving deviation alerts.</p>
+  {{end}}
+</section>
+
+<section>
+  <h2>How notifications fire</h2>
+  <ul class="muted prose">
+    <li>One webhook per <em>run</em>, not per deviation — keeps Slack/Discord channels readable.</li>
+    <li>Fires only when the Differ writes <strong>≥ 1</strong> deviation against baseline.</li>
+    <li><code>min_severity</code> per target: a target with <code>min_severity=high</code> only fires when at least one of the run's deviations is high or critical.</li>
+    <li>HMAC opt-in: when <code>secret_env</code> is set on a <em>generic</em> target, requests get <code>X-FANGS-Signature: sha256=&lt;hex&gt;</code>. Slack/Discord ignore <code>secret_env</code> — the URL is the secret in those models.</li>
+    <li>Retry policy: 5 attempts max, exponential backoff (1s × 2^(n-1) ±25% jitter). 4xx (non-408/429) is permanent; 5xx and network errors retry.</li>
+    <li>Every attempt persists an audit row in the <code>notifications</code> table — view with <code>fangs notifier history -run &lt;run_id&gt;</code>.</li>
+  </ul>
+</section>
+{{end}}

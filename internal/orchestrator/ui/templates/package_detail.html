@@ -1,0 +1,68 @@
+{{define "content"}}
+<header class="page-header">
+  <h1>Package: <code>{{.PackageName}}</code></h1>
+  <a class="muted" href="/ui/packages">← all packages</a>
+</header>
+
+<section>
+  <h2>Runs ({{len .Runs}})</h2>
+  {{if .Runs}}
+  <table>
+    <thead><tr><th>Run</th><th>Version</th><th>State</th><th>Started</th><th>Finished</th></tr></thead>
+    <tbody>
+    {{range .Runs}}
+      <tr>
+        <td><code><a href="/ui/runs/{{.ID}}">{{shortID .ID}}</a></code></td>
+        <td class="muted">{{.Version}}</td>
+        <td>
+          <span class="state state-{{.State}}">{{.State}}</span>
+          {{if .IsBaseline}}<span class="badge baseline">baseline</span>{{end}}
+        </td>
+        <td title="{{formatTS (derefTime .StartedAt)}}">{{relTime (derefTime .StartedAt)}}</td>
+        <td title="{{formatTS (derefTime .FinishedAt)}}">{{relTime (derefTime .FinishedAt)}}</td>
+      </tr>
+    {{end}}
+    </tbody>
+  </table>
+  {{else}}<p class="muted">No runs yet for this package.</p>{{end}}
+</section>
+
+<section>
+  <h2>Releases ({{len .Releases}})</h2>
+  {{if .Releases}}
+  <table>
+    <thead><tr><th>Version</th><th>Published</th><th>Discovered</th><th>SHA-256</th></tr></thead>
+    <tbody>
+    {{range .Releases}}
+      <tr>
+        <td><code>{{.Version}}</code></td>
+        <td title="{{formatTS .PublishedAt}}">{{relTime .PublishedAt}}</td>
+        <td title="{{formatTS .DiscoveredAt}}">{{relTime .DiscoveredAt}}</td>
+        <td class="muted"><code>{{truncate .TarballSHA256 16}}</code></td>
+      </tr>
+    {{end}}
+    </tbody>
+  </table>
+  {{else}}<p class="muted">No registry releases recorded.</p>{{end}}
+</section>
+
+<section>
+  <h2>Baseline fingerprints ({{.BaselineSize}})</h2>
+  {{if .Baseline}}
+  <table>
+    <thead><tr><th>Category</th><th>Value</th><th>Occurrences</th><th>First seen</th><th>Last seen</th></tr></thead>
+    <tbody>
+    {{range .Baseline}}
+      <tr>
+        <td class="muted">{{.Category}}</td>
+        <td><code>{{truncate .Value 80}}</code></td>
+        <td>{{.OccurrenceCount}}</td>
+        <td><code><a href="/ui/runs/{{.FirstSeenRunID}}">{{shortID .FirstSeenRunID}}</a></code></td>
+        <td><code><a href="/ui/runs/{{.LastSeenRunID}}">{{shortID .LastSeenRunID}}</a></code></td>
+      </tr>
+    {{end}}
+    </tbody>
+  </table>
+  {{else}}<p class="muted">No baseline yet — first run will seed one (D38 auto-promote).</p>{{end}}
+</section>
+{{end}}

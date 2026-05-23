@@ -1,0 +1,37 @@
+{{define "layout.html"}}<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>FANGS — {{.Page}}</title>
+<link rel="stylesheet" href="/static/base.css">
+<script src="/static/refresh.js" defer></script>
+</head>
+<body>
+<div class="app">
+  <aside class="sidebar">
+    <div class="brand">
+      <span class="brand-name">FANGS</span>
+    </div>
+    <nav>
+      <a href="/ui/" class="nav-item{{if eq .Page "overview"}} active{{end}}">Overview</a>
+      <a href="/ui/packages" class="nav-item{{if eq .Page "packages"}} active{{end}}">Packages</a>
+      <a href="/ui/runs" class="nav-item{{if eq .Page "runs"}} active{{end}}">Runs</a>
+      <a href="/ui/deviations" class="nav-item{{if eq .Page "deviations"}} active{{end}}">Deviations</a>
+      <a href="/ui/pending" class="nav-item{{if eq .Page "pending"}} active{{end}}">Pending review</a>
+      <a href="/ui/allowlist" class="nav-item{{if eq .Page "allowlist"}} active{{end}}">Allowlist</a>
+      <a href="/ui/notifiers" class="nav-item{{if eq .Page "notifiers"}} active{{end}}">Notifiers</a>
+      <a href="/ui/config" class="nav-item{{if eq .Page "config"}} active{{end}}">Configuration</a>
+    </nav>
+    <div class="sidebar-footer">
+      <div class="muted">Read-only console</div>
+      <div class="muted">Mutating actions: <code>fangs</code> CLI</div>
+      {{if .Version}}<div class="muted version">v{{.Version}}</div>{{end}}
+    </div>
+  </aside>
+  <main class="content">
+    {{block "content" .}}{{end}}
+  </main>
+</div>
+</body>
+</html>{{end}}

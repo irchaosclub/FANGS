@@ -1,0 +1,30 @@
+{{define "content"}}
+<header class="page-header">
+  <h1>Event <code>#{{.Event.ID}}</code></h1>
+  <div>
+    <a href="/ui/runs/{{.Event.RunID}}/lineage?event={{.Event.ID}}">→ view lineage</a>
+    &nbsp;·&nbsp;
+    <a class="muted" href="/ui/runs/{{.Event.RunID}}">← run {{shortID .Event.RunID}}</a>
+  </div>
+</header>
+
+<section class="grid grid-3">
+  <div class="card">
+    <div class="card-label">Type</div>
+    <div class="card-value mono">{{.Event.Type}}</div>
+  </div>
+  <div class="card">
+    <div class="card-label">Run</div>
+    <div class="card-value mono"><a href="/ui/runs/{{.Event.RunID}}">{{shortID .Event.RunID}}</a></div>
+  </div>
+  <div class="card">
+    <div class="card-label">Kernel ts (ns)</div>
+    <div class="card-value mono">{{.Event.TsNS}}</div>
+  </div>
+</section>
+
+<section>
+  <h2>Payload</h2>
+  <pre class="code"><code>{{.EventJSON}}</code></pre>
+</section>
+{{end}}

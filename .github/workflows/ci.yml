@@ -1,0 +1,117 @@
+# FANGS CI — runs on every push to main and every pull request.
+#
+# Pipeline:
+#   1. Install eBPF build deps (clang, llvm, libbpf-dev, bpftool via linux-tools).
+#   2. Generate vmlinux.h from the runner kernel's BTF (ubuntu-latest has it).
+#   3. `make generate` — compile sensor.bpf.c + emit bpf2go bindings.
+#   4. `make lint`  — gofmt + go vet.
+#   5. `make test`  — go test -race -count=1 ./...
+#
+# Notes:
+#   - Unit tests do NOT attach probes. The integration test that actually loads
+#     and attaches eBPF lives in a separate (planned) job with sudo + privileged
+#     docker; see TASKS.md P4.0 follow-ups.
+#   - bpf2go-generated files (*_bpfel.go) are NOT checked in; CI regenerates.
+#   - vmlinux.h is NOT checked in; CI regenerates from the runner's kernel.
+
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-and-test:
+    name: build + lint + test
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: fangs
+          POSTGRES_PASSWORD: fangs
+          POSTGRES_DB: fangs_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    env:
+      FANGS_PG_TEST_DSN: "postgres://fangs:fangs@127.0.0.1:5432/fangs_test?sslmode=disable"
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install eBPF build deps
+        run: |
+          set -euo pipefail
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            clang \
+            llvm \
+            libbpf-dev \
+            libelf-dev \
+            pkg-config \
+            make
+          clang --version
+
+      - name: Build bpftool from source
+        run: |
+          set -euo pipefail
+          # Ubuntu 24.04 only ships `bpftool` as a virtual package provided by
+          # kernel-specific linux-tools-X.Y.Z packages, and the Azure kernel on
+          # GitHub Actions runners doesn't have a matching one. Building from
+          # source avoids the kernel-version coupling entirely.
+          git clone --depth 1 --recurse-submodules \
+            https://github.com/libbpf/bpftool.git /tmp/bpftool-src
+          make -C /tmp/bpftool-src/src -j"$(nproc)"
+          sudo install -m 0755 /tmp/bpftool-src/src/bpftool /usr/local/bin/bpftool
+          bpftool version
+
+      - name: Verify kernel BTF
+        run: |
+          test -r /sys/kernel/btf/vmlinux \
+            && echo "BTF present ($(stat -c %s /sys/kernel/btf/vmlinux) bytes)"
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      - name: Show Go env (debug)
+        run: go env GOVERSION GOOS GOARCH
+
+      - name: Generate vmlinux.h + bpf2go bindings
+        run: make generate
+
+      - name: Lint
+        run: make lint
+
+      - name: Test
+        run: make test
+
+      - name: Build binaries
+        run: make build
+
+      - name: Upload binaries
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        uses: actions/upload-artifact@v4
+        with:
+          name: fangs-binaries-${{ github.sha }}
+          path: bin/
+          retention-days: 7

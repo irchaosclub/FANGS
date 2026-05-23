@@ -1,0 +1,31 @@
+{{define "content"}}
+<header class="page-header">
+  <h1>Packages</h1>
+  <div class="muted">{{len .Packages}} package{{if ne (len .Packages) 1}}s{{end}} on file</div>
+</header>
+
+{{if .Packages}}
+<table>
+  <thead><tr><th>Name</th><th>Runs</th><th>Baseline</th><th>Open dev.</th><th>Latest version</th><th>Latest run</th><th>Watched</th></tr></thead>
+  <tbody>
+  {{range .Packages}}
+    <tr>
+      <td><a href="/ui/packages/{{.Name}}"><code>{{.Name}}</code></a></td>
+      <td>{{.RunsTotal}}</td>
+      <td>{{.RunsBaseline}}</td>
+      <td{{if gt .DeviationsLatest 0}} class="alert"{{end}}>{{.DeviationsLatest}}</td>
+      <td class="muted">{{.LatestVersion}}</td>
+      <td>
+        {{if .LatestRunID}}
+          <code><a href="/ui/runs/{{.LatestRunID}}">{{shortID .LatestRunID}}</a></code>
+        {{else}}<span class="muted">—</span>{{end}}
+      </td>
+      <td>{{if index $.Watched .Name}}<span class="badge baseline">yes</span>{{else}}<span class="muted">no</span>{{end}}</td>
+    </tr>
+  {{end}}
+  </tbody>
+</table>
+{{else}}
+<p class="muted">No packages yet. Add one: <code>fangs package add &lt;name&gt;</code></p>
+{{end}}
+{{end}}

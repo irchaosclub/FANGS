@@ -1,0 +1,105 @@
+{{define "content"}}
+<header class="page-header">
+  <h1>Pending review</h1>
+  <div class="muted">
+    <span id="pending-total">{{.Total}}</span> run{{if ne .Total 1}}s{{end}} awaiting an operator decision
+    <span class="small">· auto-refresh 10s</span>
+  </div>
+</header>
+
+<div id="pending-live"
+     data-refresh-url="/ui/pending"
+     data-refresh-extract="#pending-live"
+     data-refresh-interval="10000">
+
+<section class="actions-note">
+  <p class="muted">
+    A run lands here when the Differ produced ≥1 novel fingerprint
+    against the package's baseline. Decide for each: <strong>accept into
+    baseline</strong> (legitimate dependency change), <strong>allowlist</strong>
+    the recurring values (known-benign noise), or <strong>investigate</strong>
+    (genuine concern — nothing in FANGS changes until you act).
+  </p>
+  <pre class="code"><code># Accept the whole run into baseline (clears deviation rows, merges fingerprints):
+fangs baseline promote &lt;run_id_prefix&gt;
+
+# Suppress recurring noise globally or per-package:
+fangs allow add -kind sni  -value telemetry.example -package &lt;pkg&gt;
+fangs allow add -kind cidr -value 10.0.0.0/8 -note "internal"
+
+# Re-read the evidence first:
+fangs deviation list -run &lt;run_id&gt;
+fangs deviation show &lt;deviation_id&gt;</code></pre>
+</section>
+
+{{if .Rows}}
+<section>
+  <h2>Queue</h2>
+  <table>
+    <thead>
+      <tr>
+        <th>Severity</th>
+        <th>Run</th>
+        <th>Package</th>
+        <th>Version</th>
+        <th>Findings</th>
+        <th>First detected</th>
+        <th>Last detected</th>
+        <th>Promote</th>
+      </tr>
+    </thead>
+    <tbody>
+    {{range .Rows}}
+      <tr>
+        <td><span class="badge {{severity .MaxSeverity}}">{{.MaxSeverity}}</span></td>
+        <td><code><a href="/ui/runs/{{.Run.ID}}">{{shortID .Run.ID}}</a></code></td>
+        <td><a href="/ui/packages/{{.Run.PackageName}}">{{.Run.PackageName}}</a></td>
+        <td class="muted">{{.Run.Version}}</td>
+        <td>
+          <a href="/ui/deviations?run={{.Run.ID}}">{{.DevCount}} →</a>
+        </td>
+        <td title="{{formatTS .FirstDetected}}">{{relTime .FirstDetected}}</td>
+        <td title="{{formatTS .LastDetected}}">{{relTime .LastDetected}}</td>
+        <td><code class="mono small">fangs baseline promote {{shortID .Run.ID}}</code></td>
+      </tr>
+    {{end}}
+    </tbody>
+  </table>
+</section>
+{{else}}
+<section>
+  <p class="muted">
+    No runs awaiting review. Either no novel fingerprints have been
+    detected, or every recent run with deviations has already been
+    promoted or allowlisted.
+  </p>
+</section>
+{{end}}
+
+<section>
+  <h2>How the queue is built</h2>
+  <ul class="muted prose">
+    <li>A run appears here when the Differ writes at least one
+      <a href="/ui/deviations">deviation</a> row for it.</li>
+    <li>It leaves the queue when:
+      <ul>
+        <li><code>fangs baseline promote &lt;run&gt;</code> accepts the run's
+          fingerprint set into baseline (the deviation rows are
+          cleared and the run is flagged <code>is_baseline=true</code>),
+          or</li>
+        <li>The next run of the same package observes the same values
+          and they enter baseline via auto-promote on a zero-deviation
+          run (this only happens if the values were never novel
+          again — usually the operator has to act first), or</li>
+        <li>The 90-day event retention prune removes the evidence
+          events. Deviation rows themselves stay (they're findings,
+          not raw evidence), but the "click for evidence" link breaks
+          past the retention horizon.</li>
+      </ul>
+    </li>
+    <li>The queue is sorted by max severity descending, then by most
+      recent detection.</li>
+  </ul>
+</section>
+</div><!-- /#pending-live -->
+{{end}}

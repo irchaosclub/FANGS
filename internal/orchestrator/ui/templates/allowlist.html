@@ -1,0 +1,75 @@
+{{define "content"}}
+<header class="page-header">
+  <h1>Allowlist</h1>
+  <div class="muted">
+    {{if .Filter}}package <code>{{.Filter}}</code> · {{.Filtered}} entries{{else}}{{.Total}} entries{{end}}
+  </div>
+</header>
+
+<section class="actions-note">
+  <p class="muted">Allowlist entries are <strong>read-only here</strong>. Manage via the CLI:</p>
+  <pre class="code"><code>fangs allow add -kind cidr -value 10.0.0.0/8 -note "internal"
+fangs allow add -kind sni  -value telemetry.example -package axios
+fangs allow remove &lt;id_prefix&gt;</code></pre>
+</section>
+
+<section>
+  <h2>Global ({{len .Global}})</h2>
+  {{if .Global}}
+  <table>
+    <thead><tr><th>ID</th><th>Kind</th><th>Value</th><th>Note</th><th>Created</th></tr></thead>
+    <tbody>
+    {{range .Global}}
+      <tr>
+        <td><code>{{shortID .ID}}</code></td>
+        <td><span class="badge sev-info">{{.Kind}}</span></td>
+        <td><code>{{truncate .Value 80}}</code></td>
+        <td class="muted">{{truncate .Note 60}}</td>
+        <td title="{{formatTS .CreatedAt}}">{{relTime .CreatedAt}}</td>
+      </tr>
+    {{end}}
+    </tbody>
+  </table>
+  {{else}}
+  <p class="muted">No global allowlist entries. The hardcoded CDN allowlist (Cloudflare, GitHub, Google, Fastly, CloudFront) still applies.</p>
+  {{end}}
+</section>
+
+{{range .PkgList}}
+  {{$pkg := .}}
+  {{$entries := index $.ByPkg $pkg}}
+  <section>
+    <h2>Package: <a href="/ui/packages/{{$pkg}}"><code>{{$pkg}}</code></a> ({{len $entries}})</h2>
+    <table>
+      <thead><tr><th>ID</th><th>Kind</th><th>Value</th><th>Note</th><th>Created</th></tr></thead>
+      <tbody>
+      {{range $entries}}
+        <tr>
+          <td><code>{{shortID .ID}}</code></td>
+          <td><span class="badge sev-info">{{.Kind}}</span></td>
+          <td><code>{{truncate .Value 80}}</code></td>
+          <td class="muted">{{truncate .Note 60}}</td>
+          <td title="{{formatTS .CreatedAt}}">{{relTime .CreatedAt}}</td>
+        </tr>
+      {{end}}
+      </tbody>
+    </table>
+  </section>
+{{end}}
+
+<section>
+  <h2>How allowlists are applied</h2>
+  <ul class="muted prose">
+    <li><strong>Global</strong> entries apply to every package's runs.</li>
+    <li><strong>Package</strong> entries apply only to runs of that package. Useful when one noisy dependency has a known internal destination.</li>
+    <li>Three kinds match three Differ categories:
+      <ul>
+        <li><code>cidr</code> → suppress <code>net_new_destination</code> when the IP is in the range</li>
+        <li><code>path</code> → suppress <code>fs_new_path_read/write</code> when the normalized path has the prefix</li>
+        <li><code>sni</code> → suppress <code>net_new_https_host</code> when the SNI matches (case-insensitive)</li>
+      </ul>
+    </li>
+    <li>The hardcoded <code>DefaultCDNAllowlist</code> (Cloudflare/GitHub/Google/Fastly/CloudFront) still applies underneath — adding entries is additive, never subtractive.</li>
+  </ul>
+</section>
+{{end}}

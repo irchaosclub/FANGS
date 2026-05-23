@@ -1,0 +1,38 @@
+#!/usr/bin/env bash
+# FANGS pre-commit hook — block commits that would fail CI's gofmt step.
+#
+# Activated by `make install-hooks` (which runs `git config core.hooksPath
+# githooks`). Lives in the repo so the same check is enforced for every
+# contributor on first setup.
+set -eu
+
+# Only Go files actually being committed this turn (Added / Copied /
+# Modified). Don't run against the whole tree on every commit.
+staged=$(git diff --cached --name-only --diff-filter=ACM | grep -E '\.go$' || true)
+if [ -z "$staged" ]; then
+    exit 0
+fi
+
+# Find gofmt — same lookup the Makefile would do.
+gofmt_bin="${GOFMT:-gofmt}"
+if ! command -v "$gofmt_bin" >/dev/null 2>&1; then
+    # Fall back to a common path Go ships at.
+    if [ -x /usr/local/go/bin/gofmt ]; then
+        gofmt_bin=/usr/local/go/bin/gofmt
+    else
+        echo "✗ pre-commit: gofmt not in PATH (set \$GOFMT or install Go)" >&2
+        exit 1
+    fi
+fi
+
+bad=$("$gofmt_bin" -l $staged 2>/dev/null || true)
+if [ -n "$bad" ]; then
+    echo "✗ pre-commit: gofmt found unformatted Go files staged for commit:" >&2
+    echo "$bad" | sed 's/^/    /' >&2
+    echo "" >&2
+    echo "Fix and re-stage:" >&2
+    echo "    $gofmt_bin -w $(echo "$bad" | tr '\n' ' ')" >&2
+    echo "    git add $(echo "$bad" | tr '\n' ' ')" >&2
+    exit 1
+fi
+exit 0

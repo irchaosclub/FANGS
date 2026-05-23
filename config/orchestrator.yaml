@@ -1,0 +1,98 @@
+# FANGS orchestrator configuration.
+#
+# Load with:
+#     ./bin/fangs-orchestrator -config config/orchestrator.yaml
+#
+# Every section is OPTIONAL. Omitted sections fall back to the
+# orchestrator's hardcoded defaults; flag overrides (e.g. -addr) win
+# over both. So you can ship a minimal config that only edits what
+# you actually want different.
+#
+# Restart the orchestrator to pick up changes — SIGHUP reload is not
+# wired today.
+
+# ---------------------------------------------------------------------
+# watched_paths — the filesystem prefixes the eBPF sensor reports for
+# every sandbox scan. Mix of broad observation prefixes (/etc/, /tmp/,
+# /usr/, /root/) and targeted cred-tagged hits (shadow, ssh keys,
+# cloud creds, environ). cred=true tags matching events with
+# EVENT_TAG_CRED_ACCESS — the UI renders them with a red row + CRED
+# badge and severity bumps to high.
+#
+# This list is applied to every job submitted without its own paths:
+# the autonomous watcher, `fangs scan submit`, and the kickoff scan
+# `fangs package add` triggers. Per-job customization remains
+# possible via the HTTP API.
+#
+# Order doesn't matter — the kernel-side LPM trie picks the longest
+# match per event. A path tagged `cred: true` always wins over its
+# parent prefix.
+watched_paths:
+  - prefix: "/etc/"
+  - prefix: "/etc/shadow"
+    cred: true
+  - prefix: "/etc/passwd"
+    cred: true
+  - prefix: "/root/"
+  - prefix: "/root/.ssh/"
+    cred: true
+  - prefix: "/root/.aws/"
+    cred: true
+  - prefix: "/root/.npmrc"
+    cred: true
+  - prefix: "/root/.docker/"
+    cred: true
+  - prefix: "/root/.kube/"
+    cred: true
+  - prefix: "/root/.gnupg/"
+    cred: true
+  - prefix: "/proc/self/environ"
+    cred: true
+  - prefix: "/tmp/"
+  - prefix: "/usr/"
+  - prefix: "/dev/"
+
+# ---------------------------------------------------------------------
+# allow — global Differ allowlist entries. Three kinds; all suppress
+# matching fingerprints from becoming deviations. The hardcoded
+# DefaultCDNAllowlist (Cloudflare/GitHub/Google/Fastly/CloudFront CIDRs)
+# applies underneath — entries here are ADDITIVE.
+#
+# Per-package scoping (e.g. "axios is allowed to call telemetry.example
+# but no other package is") is intentionally NOT in YAML — that's what
+# `fangs allow add -package P` is for. Config is global only.
+#
+# Config-managed entries get deterministic IDs prefixed with "cfg" so
+# `fangs allow list` shows you which ones came from YAML vs. CLI. They
+# survive restarts (idempotent re-upsert); `fangs allow remove` works
+# but the entry comes back unless you also delete the YAML line.
+allow:
+  # cidrs — net_new_destination IPs falling inside the range are
+  # dropped. The kernel still observes them; this only affects what
+  # the Differ surfaces.
+  cidrs: []
+    # - value: "10.0.0.0/8"
+    #   note: "internal RFC1918 network"
+
+  # snis — net_new_https_host matching the lowercased SNI is dropped.
+  # Add legitimate telemetry / known-vendor endpoints here.
+  snis: []
+    # - value: "telemetry.internal.example"
+    #   note: "operator metrics intake"
+
+  # paths — file_access fingerprints whose normalized path starts with
+  # the prefix are dropped. This is the "watched-but-excluded" mechanism:
+  # /usr is in watched_paths so the sensor reports all of it, but
+  # /usr/lib (every libc / .so resolution) creates noise without value.
+  # Exclude it here to keep the differ output focused.
+  paths:
+    - value: "/usr/lib/"
+      note: "shared library loads — high-volume, low signal"
+    - value: "/usr/lib64/"
+      note: "ditto for 64-bit systems"
+    - value: "/usr/share/zoneinfo/"
+      note: "timezone database reads on every process start"
+    - value: "/usr/share/locale/"
+      note: "i18n data reads"
+    - value: "/usr/local/lib/"
+      note: "shared libraries outside the package manager — high-volume, low signal"

@@ -1,0 +1,40 @@
+# Build outputs
+bin/
+dist/
+*.o
+*.so
+
+# Generated eBPF / bpf2go artifacts (file names: <ident>_<arch>_bpfel.{go,o})
+**/*_bpfel.go
+**/*_bpfeb.go
+**/*_bpfel.o
+**/*_bpfeb.o
+
+# vmlinux.h is generated from the host kernel BTF; not checked in
+**/vmlinux.h
+
+# Go
+*.test
+*.out
+coverage.out
+coverage.html
+
+# Editor / OS
+.vscode/
+.idea/
+*.swp
+.DS_Store
+
+# Local runtime state
+/var/
+*.log
+
+# Local secrets
+*.env
+*.local.yaml
+*.pem
+*.key
+*.crt
+!testdata/**/*.pem
+!testdata/**/*.key
+!testdata/**/*.crt

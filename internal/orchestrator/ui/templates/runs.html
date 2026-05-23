@@ -1,0 +1,34 @@
+{{define "content"}}
+<header class="page-header">
+  <h1>Runs</h1>
+  <div class="muted">{{.ResultLen}} result{{if ne .ResultLen 1}}s{{end}} (limit {{.Limit}})</div>
+</header>
+
+<form class="filter-bar" method="get" action="/ui/runs">
+  <label>Package <input type="text" name="package" value="{{.Filter}}" placeholder="e.g. lodash"></label>
+  <label>Limit <input type="number" name="limit" value="{{.Limit}}" min="1" max="1000"></label>
+  <button type="submit">Apply</button>
+  {{if .Filter}}<a href="/ui/runs" class="muted">clear</a>{{end}}
+</form>
+
+{{if .Runs}}
+<table>
+  <thead><tr><th>Run</th><th>Package</th><th>Version</th><th>State</th><th>Baseline</th><th>Started</th><th>Finished</th></tr></thead>
+  <tbody>
+  {{range .Runs}}
+    <tr>
+      <td><code><a href="/ui/runs/{{.ID}}">{{shortID .ID}}</a></code></td>
+      <td><a href="/ui/packages/{{.PackageName}}">{{.PackageName}}</a></td>
+      <td class="muted">{{.Version}}</td>
+      <td><span class="state state-{{.State}}">{{.State}}</span></td>
+      <td>{{if .IsBaseline}}<span class="badge baseline">★</span>{{else}}<span class="muted">—</span>{{end}}</td>
+      <td title="{{formatTS (derefTime .StartedAt)}}">{{relTime (derefTime .StartedAt)}}</td>
+      <td title="{{formatTS (derefTime .FinishedAt)}}">{{relTime (derefTime .FinishedAt)}}</td>
+    </tr>
+  {{end}}
+  </tbody>
+</table>
+{{else}}
+<p class="muted">No runs matched.</p>
+{{end}}
+{{end}}

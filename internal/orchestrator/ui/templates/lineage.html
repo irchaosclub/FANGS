@@ -1,0 +1,100 @@
+{{define "content"}}
+{{$v := .View}}
+<header class="page-header">
+  <h1>Lineage <code>{{shortID $v.RunID}}</code></h1>
+  <div>
+    <a class="muted" href="/ui/runs/{{$v.RunID}}">← run detail</a>
+  </div>
+</header>
+
+<section class="grid grid-3">
+  <div class="card">
+    <div class="card-label">Run</div>
+    <div class="card-value mono"><a href="/ui/packages/{{$v.Run.PackageName}}">{{$v.Run.PackageName}}</a></div>
+    <div class="card-sub muted">{{$v.Run.Version}} · {{$v.Run.State}}</div>
+  </div>
+  <div class="card">
+    <div class="card-label">Processes</div>
+    <div class="card-value">{{$v.NodeCount}}</div>
+    <div class="card-sub muted">in the captured tree</div>
+  </div>
+  <div class="card">
+    <div class="card-label">Focused event</div>
+    <div class="card-value mono">{{if $v.TargetID}}#{{$v.TargetID}}{{else}}—{{end}}</div>
+    <div class="card-sub muted">{{if $v.TargetID}}green border below{{else}}showing the full run{{end}}</div>
+  </div>
+</section>
+
+<section>
+  <h2>Process tree</h2>
+  <p class="muted prose">Indentation = depth in the process tree. Click any process row to expand its event list.{{if $v.TargetID}} The originating process for the focused event is auto-expanded and outlined; its ancestor chain is highlighted.{{end}}</p>
+
+  {{/* Build the ?event= query param suffix so chip links preserve the
+       focused-event highlight when the operator filters by type. */}}
+  {{$evParam := ""}}{{if $v.TargetID}}{{$evParam = printf "&event=%d" $v.TargetID}}{{end}}
+  <div id="lineage-content" data-dynamic-nav="#lineage-content">
+  {{if $v.AllTypes}}
+  <div class="chips" style="margin-bottom: 14px;">
+    <a href="?{{if $v.TargetID}}event={{$v.TargetID}}{{end}}"
+       class="chip{{if not $v.TypeFilter}} chip-active{{end}}">All · {{$v.TotalEvents}}</a>
+    {{range $v.AllTypes}}
+      <a href="?type={{.Type}}{{$evParam}}"
+         class="chip {{chipColor .Type}}{{if eq $v.TypeFilter .Type}} chip-active{{end}}">
+        {{.Type}} · {{.Count}}
+      </a>
+    {{end}}
+    {{if $v.TypeFilter}}
+      <span class="muted small" style="align-self: center;">
+        showing {{$v.FilteredEvents}} of {{$v.TotalEvents}}
+      </span>
+    {{end}}
+  </div>
+  {{end}}
+
+  {{if $v.Flat}}
+  <div class="lineage-list">
+    {{range $v.Flat}}
+      {{$rowClass := ""}}
+      {{if .IsTarget}}{{$rowClass = "row-target"}}{{else if .HasTargetIn}}{{$rowClass = "row-onpath"}}{{end}}
+      <div class="proc-row {{$rowClass}}" style="--depth: {{.Depth}}" data-pid="{{.PID}}">
+        <details{{if or .IsTarget .HasTargetIn}} open{{end}}>
+          <summary class="proc-summary">
+            <span class="proc-caret" aria-hidden="true">▸</span>
+            <span class="proc-comm">{{if .Comm}}{{.Comm}}{{else}}(no comm){{end}}</span>
+            <span class="proc-pid muted">pid {{.PID}}</span>
+            {{if .Binary}}<span class="proc-binary muted">{{truncate .Binary 80}}</span>{{end}}
+            <span class="proc-counts">
+              {{range sortedCounts .EventCounts}}
+                <span class="count-chip {{chipColor .Type}}">{{.Type}}<span class="count-n"> · {{.Count}}</span></span>
+              {{end}}
+              {{if not .EventCounts}}<span class="muted small">no events</span>{{end}}
+            </span>
+          </summary>
+          <div class="proc-events">
+            {{if .Events}}
+              {{range .Events}}
+                <div class="event-row{{if .IsTarget}} event-target{{end}}{{if gt .Tags 0}} event-tagged{{end}}">
+                  <span class="event-chip {{chipColor .Type}}">{{.Type}}</span>
+                  <span class="event-summary mono">{{if .Summary}}{{truncate .Summary 200}}{{else}}<span class="muted">(no summary)</span>{{end}}</span>
+                  {{if gt .Tags 0}}<span class="event-tag-badge">cred</span>{{end}}
+                  <a class="event-link muted" href="/ui/events/{{.ID}}">#{{.ID}} →</a>
+                </div>
+              {{end}}
+            {{else}}
+              {{if $v.TypeFilter}}
+                <div class="muted small proc-no-events">No <code>{{$v.TypeFilter}}</code> events from this process. The chip totals above show what it did do.</div>
+              {{else}}
+                <div class="muted small proc-no-events">No events captured from this process — only appears here because it's an ancestor of one that did.</div>
+              {{end}}
+            {{end}}
+          </div>
+        </details>
+      </div>
+    {{end}}
+  </div>
+  {{else}}
+  <p class="muted">No events captured for this run — nothing to lineage.</p>
+  {{end}}
+  </div><!-- /#lineage-content -->
+</section>
+{{end}}

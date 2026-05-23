@@ -1,0 +1,95 @@
+{{define "content"}}
+<header class="page-header">
+  <h1>Configuration</h1>
+  <div class="muted">
+    {{if .ConfigPath}}<code>{{.ConfigPath}}</code>{{else}}flags / hardcoded defaults only{{end}}
+  </div>
+</header>
+
+<section class="actions-note">
+  <p class="muted">
+    Configuration is <strong>read-only here</strong>. Edit
+    <code>{{.ConfigPath}}</code> on disk and restart the orchestrator
+    to apply changes. SIGHUP reload is not wired today.
+  </p>
+</section>
+
+<section>
+  <h2>Watched paths in effect ({{len .WatchedPaths}})</h2>
+  <p class="muted">
+    The list the orchestrator stamps onto every scan job whose
+    <code>watched_paths</code> arrived empty (the autonomous watcher,
+    <code>fangs scan submit</code>, <code>fangs package add</code>
+    kickoffs). Per-job overrides bypass this list.
+  </p>
+  {{if .WatchedPaths}}
+  <table>
+    <thead><tr><th>Prefix</th><th>Cred-tagged</th></tr></thead>
+    <tbody>
+    {{range .WatchedPaths}}
+      <tr>
+        <td><code>{{.Prefix}}</code></td>
+        <td>
+          {{if .CredTagged}}<span class="badge sev-high">cred</span>
+          {{else}}<span class="muted">—</span>{{end}}
+        </td>
+      </tr>
+    {{end}}
+    </tbody>
+  </table>
+  {{else}}
+  <p class="muted">No watched paths configured — file events won't fire on auto-submitted scans.</p>
+  {{end}}
+</section>
+
+<section>
+  <h2>Config-managed allowlist</h2>
+  <p class="muted">
+    Entries with <code>cfg…</code> IDs were upserted from
+    <code>{{.ConfigPath}}</code> at startup. Removing one via
+    <code>fangs allow remove</code> works but it returns on next
+    restart unless you also delete the YAML line.
+  </p>
+  {{$cfgCount := 0}}
+  {{range .AllowEntries}}{{if hasPrefix .ID "cfg"}}{{$cfgCount = add $cfgCount 1}}{{end}}{{end}}
+  {{if eq $cfgCount 0}}
+    <p class="muted">No config-managed allowlist entries.</p>
+  {{else}}
+  <table>
+    <thead><tr><th>ID</th><th>Kind</th><th>Value</th><th>Note</th></tr></thead>
+    <tbody>
+    {{range .AllowEntries}}
+      {{if hasPrefix .ID "cfg"}}
+      <tr>
+        <td><code>{{shortID .ID}}</code></td>
+        <td><span class="badge sev-info">{{.Kind}}</span></td>
+        <td><code>{{truncate .Value 80}}</code></td>
+        <td class="muted">{{truncate .Note 60}}</td>
+      </tr>
+      {{end}}
+    {{end}}
+    </tbody>
+  </table>
+  {{end}}
+</section>
+
+{{if .YAMLExists}}
+<section>
+  <h2>Raw YAML on disk</h2>
+  <pre class="code"><code>{{.YAML}}</code></pre>
+</section>
+{{else if .ConfigPath}}
+<section>
+  <h2>Raw YAML on disk</h2>
+  {{if .YAMLError}}
+    <p class="alert">Couldn't read config file: <code>{{.YAMLError}}</code></p>
+  {{else}}
+    <p class="muted">
+      No file at <code>{{.ConfigPath}}</code> — orchestrator is running
+      with hardcoded fallbacks for every section. Drop a YAML file at
+      that path and restart to apply edits.
+    </p>
+  {{end}}
+</section>
+{{end}}
+{{end}}

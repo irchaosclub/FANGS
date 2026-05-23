@@ -1,0 +1,43 @@
+{{define "content"}}
+<header class="page-header">
+  <h1>Deviations</h1>
+  <div class="muted">{{.ResultLen}} result{{if ne .ResultLen 1}}s{{end}}</div>
+</header>
+
+<form class="filter-bar" method="get" action="/ui/deviations">
+  <label>Package <input type="text" name="package" value="{{.Filter.PackageName}}" placeholder="e.g. lodash"></label>
+  <label>Severity
+    <select name="severity">
+      <option value="">any</option>
+      <option value="critical"{{if eq .Filter.Severity "critical"}} selected{{end}}>critical</option>
+      <option value="high"{{if eq .Filter.Severity "high"}} selected{{end}}>high</option>
+      <option value="medium"{{if eq .Filter.Severity "medium"}} selected{{end}}>medium</option>
+      <option value="low"{{if eq .Filter.Severity "low"}} selected{{end}}>low</option>
+    </select>
+  </label>
+  <label>Run <input type="text" name="run" value="{{.Filter.RunID}}" placeholder="run id"></label>
+  <label>Limit <input type="number" name="limit" value="{{.Filter.Limit}}" min="1" max="1000"></label>
+  <button type="submit">Apply</button>
+  {{if or .Filter.PackageName .Filter.Severity .Filter.RunID}}<a href="/ui/deviations" class="muted">clear</a>{{end}}
+</form>
+
+{{if .Deviations}}
+<table>
+  <thead><tr><th>ID</th><th>Severity</th><th>Category</th><th>Value</th><th>Run</th><th>Detected</th></tr></thead>
+  <tbody>
+  {{range .Deviations}}
+    <tr>
+      <td><code><a href="/ui/deviations/{{.ID}}">{{shortID .ID}}</a></code></td>
+      <td><span class="badge {{severity .Severity}}">{{.Severity}}</span></td>
+      <td class="muted">{{.Category}}</td>
+      <td><code>{{truncate .Value 80}}</code></td>
+      <td><code><a href="/ui/runs/{{.RunID}}">{{shortID .RunID}}</a></code></td>
+      <td title="{{formatTS .DetectedAt}}">{{relTime .DetectedAt}}</td>
+    </tr>
+  {{end}}
+  </tbody>
+</table>
+{{else}}
+<p class="muted">No deviations matched. (No news is good news.)</p>
+{{end}}
+{{end}}
