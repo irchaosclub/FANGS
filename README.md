@@ -62,7 +62,7 @@ make install-hooks   # one-time per clone: gofmt pre-commit
 make all             # generates vmlinux.h, compiles eBPF, builds 4 binaries
 ```
 
-Full prereqs (kernel, clang, bpftool) in [`docs/INSTALL.md`](docs/INSTALL.md).
+Full prereqs (kernel, clang, bpftool) on the [Installation wiki page](https://github.com/irchaosclub/FANGS/wiki/Installation).
 
 ## Usage
 
@@ -98,8 +98,8 @@ Day-to-day workflow:
 - `fangs allow add` suppresses recurring noise (CIDRs, SNIs, file path
   prefixes) before it becomes a deviation.
 
-Full subcommand reference: `fangs help` or
-[`docs/OPERATING.md`](docs/OPERATING.md).
+Full subcommand reference: `fangs help` or the
+[Operating wiki page](https://github.com/irchaosclub/FANGS/wiki/Operating).
 
 ## Config
 
@@ -137,7 +137,8 @@ deviations — global only; per-package suppressions go through
 
 Storage backend, listen address, TLS material, watcher cadence,
 retention horizon, and notifier defaults are flags + env vars — full
-reference in [`docs/CONFIGURATION.md`](docs/CONFIGURATION.md).
+reference on the
+[Configuration wiki page](https://github.com/irchaosclub/FANGS/wiki/Configuration).
 
 ## Production
 
@@ -145,25 +146,37 @@ Defaults assume one host, one operator, localhost-only. Before
 deploying anywhere a malicious package's exfil attempt actually
 matters:
 
-- Turn on mTLS — [`docs/TLS.md`](docs/TLS.md). Without it, anyone on
-  the network can register a runner.
+- Turn on mTLS — see the
+  [TLS-mTLS wiki page](https://github.com/irchaosclub/FANGS/wiki/TLS-mTLS).
+  Without it, anyone on the network can register a runner.
 - Add at least one notifier — `fangs notifier add` — so deviations
   push instead of waiting on a dashboard refresh.
-- Read [`docs/THREAT_MODEL.md`](docs/THREAT_MODEL.md). FANGS protects
-  against some things and not others; the threat model spells out
-  which.
+- Read the
+  [Threat-Model wiki page](https://github.com/irchaosclub/FANGS/wiki/Threat-Model).
+  FANGS protects against some things and not others; the threat
+  model spells out which.
 - Run the runner on a dedicated host. It's running attacker-supplied
   code in a sandbox; treat it as compromised.
 
 ## Docs
 
-- [`docs/INSTALL.md`](docs/INSTALL.md) — fresh-machine install
-- [`docs/OPERATING.md`](docs/OPERATING.md) — day-2 runbook
-- [`docs/CONFIGURATION.md`](docs/CONFIGURATION.md) — flags and env vars
-- [`docs/TLS.md`](docs/TLS.md) — mTLS setup
-- [`docs/THREAT_MODEL.md`](docs/THREAT_MODEL.md) — what FANGS protects and doesn't
-- [`docs/SENSOR_SETUP.md`](docs/SENSOR_SETUP.md) — kernel prereqs + capability-based runner
-- [`ARCHITECTURE.md`](ARCHITECTURE.md) — system design
+Long-form documentation lives in the
+[**wiki**](https://github.com/irchaosclub/FANGS/wiki):
+
+- [Installation](https://github.com/irchaosclub/FANGS/wiki/Installation) — distro matrix, build, postgres, systemd units
+- [Operating](https://github.com/irchaosclub/FANGS/wiki/Operating) — day-2 runbook + troubleshooting
+- [Configuration](https://github.com/irchaosclub/FANGS/wiki/Configuration) — every YAML section + flag + env var
+- [Architecture](https://github.com/irchaosclub/FANGS/wiki/Architecture) — system design + sequence diagrams
+- [Sensor-Probes](https://github.com/irchaosclub/FANGS/wiki/Sensor-Probes) — per-probe details + BPF map shapes
+- [Differ-Rules](https://github.com/irchaosclub/FANGS/wiki/Differ-Rules) — extraction logic + normalization
+- [Notifier](https://github.com/irchaosclub/FANGS/wiki/Notifier) — templates, retry, HMAC
+- [TLS-mTLS](https://github.com/irchaosclub/FANGS/wiki/TLS-mTLS) — cert lifecycle + production checklist
+- [Threat-Model](https://github.com/irchaosclub/FANGS/wiki/Threat-Model) — T1–T9 with mitigations
+- [CLI-Reference](https://github.com/irchaosclub/FANGS/wiki/CLI-Reference) — every subcommand
+- [API-Reference](https://github.com/irchaosclub/FANGS/wiki/API-Reference) — every endpoint
+- [Storage-Schema](https://github.com/irchaosclub/FANGS/wiki/Storage-Schema) — every table + column + migration
+- [Metrics](https://github.com/irchaosclub/FANGS/wiki/Metrics) — Prometheus series + recommended alerts
+- [FAQ](https://github.com/irchaosclub/FANGS/wiki/FAQ) — common questions + SQL recipes
 
 ## License
 

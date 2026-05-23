@@ -15,7 +15,7 @@ import (
 // cgroup v2 hierarchy that Docker actually populated. This usually
 // means the Docker daemon is on the legacy cgroupfs v1 driver — FANGS
 // requires cgroup v2 + systemd driver for per-container multiplexing.
-var ErrCgroupV2Required = errors.New("sandbox: cgroup v2 with systemd driver required (see docs/SENSOR_SETUP.md)")
+var ErrCgroupV2Required = errors.New("sandbox: cgroup v2 with systemd driver required (see https://github.com/irchaosclub/FANGS/wiki/Installation)")
 
 // cgroupV2Root returns the absolute path where the v2 unified
 // hierarchy is mounted. Most modern hosts have it at /sys/fs/cgroup,
